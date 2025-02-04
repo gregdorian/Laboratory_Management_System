@@ -1,0 +1,198 @@
+-- CREACIÓN DE TABLAS
+
+CREATE TABLE Direccion (
+    Id SERIAL PRIMARY KEY,
+    Calle TEXT,
+    Ciudad TEXT,
+    Departamento TEXT,
+    Pais TEXT,
+    Telefono TEXT,
+    CodigoPostal TEXT,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Paciente (
+    Id SERIAL PRIMARY KEY,
+    NoIdentificacion TEXT UNIQUE NOT NULL,
+    Nombre TEXT NOT NULL,
+    PrimerApellido TEXT NOT NULL,
+    SegundoApellido TEXT,
+    Sexo CHAR(1) CHECK (Sexo IN ('M', 'F')),
+    HistoriaClinica TEXT,
+    FechaNacimiento DATE NOT NULL,
+    Direccion INT REFERENCES Direccion(Id) ON DELETE SET NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Medico (
+    Id SERIAL PRIMARY KEY,
+    CodigoMedico TEXT UNIQUE NOT NULL,
+    Nombre TEXT NOT NULL,
+    Apellido TEXT NOT NULL,
+    Especialidad TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Aseguradora (
+    Id SERIAL PRIMARY KEY,
+    CodigoAseguradora TEXT UNIQUE NOT NULL,
+    NombreAseguradora TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Factura (
+    Id SERIAL PRIMARY KEY,
+    NoFactura TEXT UNIQUE NOT NULL,
+    Monto DECIMAL(10,2) NOT NULL,
+    SolicitudExamenId INT REFERENCES Paciente(Id) ON DELETE CASCADE,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE SolicitudExamen (
+    Id SERIAL PRIMARY KEY,
+    PacienteId INT REFERENCES Paciente(Id) ON DELETE CASCADE,
+    AseguradoraId INT REFERENCES Aseguradora(Id) ON DELETE SET NULL,
+    MedicoId INT REFERENCES Medico(Id) ON DELETE SET NULL,
+    IngresoPor TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Area (
+    Id SERIAL PRIMARY KEY,
+    CodigoArea TEXT UNIQUE NOT NULL,
+    NombreArea TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Examen (
+    Id SERIAL PRIMARY KEY,
+    AreaId INT REFERENCES Area(Id) ON DELETE SET NULL,
+    CodigoExamen TEXT UNIQUE NOT NULL,
+    NombreExamen TEXT NOT NULL,
+    SignificadoClinico TEXT,
+    PrecioExamen DECIMAL(10,2) NOT NULL,
+    CodigoCUPS TEXT UNIQUE,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Muestra (
+    Id SERIAL PRIMARY KEY,
+    NombreMuestra TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE ExamenMuestra (
+    ExamenId INT REFERENCES Examen(Id) ON DELETE CASCADE,
+    MuestraId INT REFERENCES Muestra(Id) ON DELETE CASCADE,
+    PRIMARY KEY (ExamenId, MuestraId)
+);
+
+CREATE TABLE PersonalLaboratorio (
+    Id SERIAL PRIMARY KEY,
+    Nombre TEXT NOT NULL,
+    Apellido TEXT NOT NULL,
+    NoRegistro TEXT UNIQUE NOT NULL,
+    Clave TEXT NOT NULL,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE ExamenSolicitado (
+    Id SERIAL PRIMARY KEY,
+    SolicitudExamenId INT REFERENCES SolicitudExamen(Id) ON DELETE CASCADE,
+    ExamenId INT REFERENCES Examen(Id) ON DELETE CASCADE,
+    EstadoMuestra TEXT CHECK (EstadoMuestra IN ('Pendiente', 'Procesando', 'Completado')),
+    Resultado TEXT,
+    PersonalLaboratorioId INT REFERENCES PersonalLaboratorio(Id) ON DELETE SET NULL,
+    FechaResultado TIMESTAMP,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Resultado (
+    Id SERIAL PRIMARY KEY,
+    ExamenSolicitadoId INT REFERENCES ExamenSolicitado(Id) ON DELETE CASCADE,
+    PersonalLaboratorioId INT REFERENCES PersonalLaboratorio(Id) ON DELETE SET NULL,
+    Resultado TEXT NOT NULL,
+    Observaciones TEXT,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE Prueba (
+    Id SERIAL PRIMARY KEY,
+    ExamenId INT REFERENCES Examen(Id) ON DELETE CASCADE,
+    NombrePrueba TEXT NOT NULL,
+    Aprobada BOOLEAN DEFAULT FALSE,
+    FechaCreacion TIMESTAMP DEFAULT NOW(),
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE ValorReferencia (
+    Id SERIAL PRIMARY KEY,
+    PruebaId INT REFERENCES Prueba(Id) ON DELETE CASCADE,
+    EdadMinimaAnios INT,
+    EdadMaximaAnios INT,
+    Sexo CHAR(1) CHECK (Sexo IN ('M', 'F')),
+    ValorMinimo DECIMAL(10,2),
+    ValorMaximo DECIMAL(10,2),
+    Unidad TEXT,
+    Interpretacion TEXT,
+    FechaModificacion TIMESTAMP DEFAULT NOW(),
+    Eliminado BOOLEAN DEFAULT FALSE
+);
+
+-- INSERCIÓN DE DATOS DE PRUEBA
+
+INSERT INTO Area (CodigoArea, NombreArea) VALUES 
+('HEM', 'Hematología'),
+('BIO', 'Bioquímica'),
+('MIC', 'Microbiología');
+
+INSERT INTO Examen (AreaId, CodigoExamen, NombreExamen, SignificadoClinico, PrecioExamen, CodigoCUPS) VALUES 
+(1, 'HEM01', 'Hemograma Completo', 'Evaluación general de la sangre', 50.00, '12345'),
+(2, 'BIO01', 'Glucosa en sangre', 'Medición de niveles de azúcar en la sangre', 30.00, '67890');
+
+INSERT INTO Muestra (NombreMuestra) VALUES 
+('Sangre'),
+('Orina');
+
+INSERT INTO ExamenMuestra (ExamenId, MuestraId) VALUES 
+(1, 1),
+(2, 2);
+
+INSERT INTO PersonalLaboratorio (Nombre, Apellido, NoRegistro, Clave) VALUES 
+('Juan', 'Pérez', 'LAB001', 'clave123'),
+('María', 'González', 'LAB002', 'clave456');
+
+-- INDEXACIÓN PARA OPTIMIZACIÓN
+
+CREATE INDEX idx_paciente_noidentificacion ON Paciente(NoIdentificacion);
+CREATE INDEX idx_medico_codigomedico ON Medico(CodigoMedico);
+CREATE INDEX idx_aseguradora_codigo ON Aseguradora(CodigoAseguradora);
+CREATE INDEX idx_factura_nofactura ON Factura(NoFactura);
+CREATE INDEX idx_examen_codigo ON Examen(CodigoExamen);
+CREATE INDEX idx_personallab_noregistro ON PersonalLaboratorio(NoRegistro);
+
